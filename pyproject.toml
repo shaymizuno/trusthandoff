@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trusthandoff"
+version = "0.1.0"
+description = "Verifiable task delegation between AI agents"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
