@@ -3,6 +3,7 @@ from .decision import PacketDecision
 from .envelope import DelegationEnvelope
 from .handoff import process_handoff
 from .identity import AgentIdentity
+from .middleware import TrustHandoffMiddleware
 from .packet import SignedTaskPacket, Permissions, Constraints, Provenance
 from .policy import check_permission_narrowing
 from .serialization import packet_from_dict, packet_to_dict
@@ -16,6 +17,7 @@ __all__ = [
     "DelegationEnvelope",
     "process_handoff",
     "AgentIdentity",
+    "TrustHandoffMiddleware",
     "SignedTaskPacket",
     "Permissions",
     "Constraints",
