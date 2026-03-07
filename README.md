@@ -99,6 +99,20 @@ This packet includes:
 - provenance
 - cryptographic signature
 
+## Current primitives
+
+TrustHandoff v0.2.0 currently includes:
+
+- SignedTaskPacket
+- AgentIdentity
+- sign_packet()
+- verify_packet()
+- validate_packet()
+- PacketDecision
+- process_handoff()
+- packet_to_dict()
+- packet_from_dict()
+
 ---
 
 ## Vision
