@@ -6,6 +6,7 @@ from .identity import AgentIdentity
 from .middleware import TrustHandoffMiddleware
 from .packet import SignedTaskPacket, Permissions, Constraints, Provenance
 from .policy import check_permission_narrowing
+from .replay import ReplayProtection
 from .serialization import packet_from_dict, packet_to_dict
 from .signing import sign_packet
 from .validation import validate_packet
@@ -23,6 +24,7 @@ __all__ = [
     "Constraints",
     "Provenance",
     "check_permission_narrowing",
+    "ReplayProtection",
     "packet_to_dict",
     "packet_from_dict",
     "sign_packet",
