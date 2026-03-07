@@ -3,6 +3,7 @@ from .decision import PacketDecision
 from .handoff import process_handoff
 from .identity import AgentIdentity
 from .packet import SignedTaskPacket, Permissions, Constraints, Provenance
+from .policy import check_permission_narrowing
 from .serialization import packet_from_dict, packet_to_dict
 from .signing import sign_packet
 from .validation import validate_packet
@@ -17,6 +18,7 @@ __all__ = [
     "Permissions",
     "Constraints",
     "Provenance",
+    "check_permission_narrowing",
     "packet_to_dict",
     "packet_from_dict",
     "sign_packet",
