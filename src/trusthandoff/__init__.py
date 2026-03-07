@@ -1,5 +1,6 @@
 from .identity import AgentIdentity
 from .packet import SignedTaskPacket, Permissions, Constraints, Provenance
+from .signing import sign_packet
 
 __all__ = [
     "AgentIdentity",
@@ -7,4 +8,5 @@ __all__ = [
     "Permissions",
     "Constraints",
     "Provenance",
+    "sign_packet",
 ]
