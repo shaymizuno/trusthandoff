@@ -1,5 +1,6 @@
 from .chain import DelegationChain
 from .decision import PacketDecision
+from .envelope import DelegationEnvelope
 from .handoff import process_handoff
 from .identity import AgentIdentity
 from .packet import SignedTaskPacket, Permissions, Constraints, Provenance
@@ -12,6 +13,7 @@ from .verification import verify_packet
 __all__ = [
     "DelegationChain",
     "PacketDecision",
+    "DelegationEnvelope",
     "process_handoff",
     "AgentIdentity",
     "SignedTaskPacket",
