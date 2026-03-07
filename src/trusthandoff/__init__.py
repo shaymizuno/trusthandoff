@@ -1,3 +1,4 @@
+from .chain import DelegationChain
 from .decision import PacketDecision
 from .handoff import process_handoff
 from .identity import AgentIdentity
@@ -8,6 +9,7 @@ from .validation import validate_packet
 from .verification import verify_packet
 
 __all__ = [
+    "DelegationChain",
     "PacketDecision",
     "process_handoff",
     "AgentIdentity",

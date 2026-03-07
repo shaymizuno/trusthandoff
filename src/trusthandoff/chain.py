@@ -1,0 +1,24 @@
+from typing import List
+from pydantic import BaseModel
+
+
+class DelegationChain(BaseModel):
+    """
+    Tracks the chain of delegation across multiple agents.
+    """
+
+    packet_ids: List[str]
+    agents: List[str]
+
+    def add_handoff(self, packet_id: str, agent_id: str):
+        """
+        Record a new delegation step.
+        """
+        self.packet_ids.append(packet_id)
+        self.agents.append(agent_id)
+
+    def depth(self) -> int:
+        """
+        Return the number of delegation steps.
+        """
+        return len(self.packet_ids)
