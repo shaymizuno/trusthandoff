@@ -1,5 +1,6 @@
 from .chain import DelegationChain
 from .decision import PacketDecision
+from .depth import within_max_depth
 from .envelope import DelegationEnvelope
 from .handoff import process_handoff
 from .identity import AgentIdentity
@@ -21,6 +22,7 @@ __all__ = [
     "AgentIdentity",
     "TrustHandoffMiddleware",
     "detects_loop",
+    "within_max_depth",
     "SignedTaskPacket",
     "Permissions",
     "Constraints",
