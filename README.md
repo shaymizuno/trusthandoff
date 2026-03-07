@@ -30,6 +30,17 @@ TrustHandoff fills this gap by defining a SignedTaskPacket that allows agents to
 
 ---
 
+## Delegation flow
+
+```mermaid
+flowchart LR
+    A[Planner Agent] -->|Create SignedTaskPacket| B[TrustHandoff Packet]
+    B --> C[Research Agent]
+    C --> D[Execute Task]
+```
+
+---
+
 ## Installation
 
 pip install trusthandoff
