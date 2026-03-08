@@ -170,6 +170,47 @@ Rather than replacing agent frameworks, TrustHandoff complements them by providi
 
 ---
 
+# Security Pipeline
+
+TrustHandoff enforces a secure delegation pipeline through its middleware.
+
+The verification pipeline is:
+
+---
+
+# Threat Model
+
+TrustHandoff is designed to prevent the following attacks during agent-to-agent delegation:
+
+- **Impersonation**  
+  Unsigned or forged packets → signature verification fails
+
+- **Unbounded delegation**  
+  Unlimited recursion or tool access → bounded permissions + max depth enforced
+
+- **Context poisoning**  
+  Malicious context injection → provenance chain allows auditing back to origin
+
+- **Replay attacks**  
+  Re-use of old packets → nonce + replay protection
+
+- **Lost ownership**  
+  Delegated agent claims authority it doesn't have → delegation chain + signer verification
+
+Out of scope (for now):
+
+- side-channel key extraction
+- denial-of-service against verification
+- physical key theft
+
+---
+
 # License
 
 MIT
+
+---
+
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI](https://img.shields.io/pypi/v/trusthandoff)](https://pypi.org/project/trusthandoff/)
