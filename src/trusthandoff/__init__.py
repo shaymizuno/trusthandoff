@@ -15,6 +15,7 @@ from .validation import validate_packet
 from .verification import verify_packet
 from .middleware import TrustHandoffMiddleware
 from .wire import envelope_from_json, envelope_to_json
+from .middleware.executor import TrustHandoffExecutor
 
 __all__ = [
     "DelegationChain",
@@ -26,6 +27,7 @@ __all__ = [
     "envelope_from_json",
     "process_handoff",
     "AgentIdentity",
+    "TrustHandoffExecutor",
     "TrustHandoffMiddleware",
     "detects_loop",
     "within_max_depth",

@@ -3,7 +3,7 @@ from trusthandoff.envelope import DelegationEnvelope
 from trusthandoff.handoff import process_handoff
 from trusthandoff.middleware.pipeline import VerificationPipeline
 from trusthandoff.middleware.steps import replay_check, make_depth_check
-
+from .executor import TrustHandoffExecutor
 
 class TrustHandoffMiddleware:
 
