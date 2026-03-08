@@ -16,6 +16,7 @@ from .verification import verify_packet
 from .middleware import TrustHandoffMiddleware
 from .wire import envelope_from_json, envelope_to_json
 from .middleware.executor import TrustHandoffExecutor
+from .api import verify_envelope
 
 __all__ = [
     "DelegationChain",
@@ -42,4 +43,5 @@ __all__ = [
     "sign_packet",
     "verify_packet",
     "validate_packet",
+    "verify_envelope",
 ]
