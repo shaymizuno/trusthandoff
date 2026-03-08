@@ -327,7 +327,6 @@ Purpose:
 
 ---
 
-
 ## DelegationPolicy
 
 TrustHandoff v0.2 introduces a first delegation policy rule:
@@ -353,7 +352,6 @@ Purpose:
 
 ---
 
-
 ## DelegationEnvelope
 
 TrustHandoff v0.2 introduces DelegationEnvelope as the canonical transport object.
@@ -378,3 +376,57 @@ Purpose:
 The SignedTaskPacket remains the atomic unit of delegation.
 
 DelegationEnvelope represents the transport container used to move packets across a delegation chain.
+
+---
+
+# Security Model
+
+TrustHandoff enforces secure task delegation through a layered verification model.
+
+A TrustHandoff packet MUST pass the following pipeline before execution.
+
+Verification pipeline:
+
+signature verification  
+→ packet validation  
+→ replay protection  
+→ delegation depth control  
+→ loop detection  
+→ policy checks  
+→ delegation decision
+
+Packets that fail any stage MUST be rejected.
+
+---
+
+# Threat Model
+
+TrustHandoff is designed to mitigate common risks in multi-agent delegation systems.
+
+### Prevented attacks
+
+Impersonation  
+Unsigned or forged packets are rejected through signature verification.
+
+Replay attacks  
+Packets cannot be reused due to nonce tracking and replay protection.
+
+Unbounded delegation  
+Delegation chains are bounded through max depth enforcement.
+
+Delegation loops  
+Circular delegation paths are detected and rejected.
+
+Context poisoning  
+Provenance chains allow verification of task origin and delegation path.
+
+Unauthorized execution  
+Permissions embedded in packets constrain allowed actions.
+
+### Out of scope
+
+The following risks are currently outside the scope of TrustHandoff:
+
+- side-channel key extraction
+- denial-of-service attacks against verification
+- physical compromise of private keys
