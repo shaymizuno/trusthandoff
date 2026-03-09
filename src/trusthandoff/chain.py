@@ -1,5 +1,7 @@
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from .hop import DelegationHop
 
 
 class DelegationChain(BaseModel):
@@ -9,6 +11,7 @@ class DelegationChain(BaseModel):
 
     packet_ids: List[str]
     agents: List[str]
+    hops: List[DelegationHop] = Field(default_factory=list)
 
     def add_handoff(self, packet_id: str, agent_id: str):
         """

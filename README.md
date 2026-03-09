@@ -42,12 +42,39 @@ This packet allows agents to safely hand off tasks while preserving:
 
 ---
 
+## Positioning
+
+TrustHandoff is a delegation trust layer for multi-agent systems.
+
+It is not:
+- a transport protocol
+- a message bus
+- an orchestration framework
+- a replacement for LangGraph, CrewAI, AutoGen, A2A, or MCP
+
+TrustHandoff complements these systems by adding:
+
+- verifiable delegation
+- bounded authority
+- provenance-aware handoff
+- replay protection
+- multi-hop authority validation
+
+Recommended ecosystem framing:
+
+- MCP = tools / context
+- A2A = agent communication
+- LangGraph / CrewAI / AutoGen = orchestration
+- TrustHandoff = delegation trust layer
+
+---
+
 # Installation
 
 ```
 pip install trusthandoff
-```
 
+```
 ---
 
 # Quickstart
