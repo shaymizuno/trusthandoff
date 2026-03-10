@@ -22,6 +22,7 @@ from .chain_validation import validate_delegation_chain
 from .agent_registry import AgentRegistry
 from .capability import DelegationCapability
 from .capability_chain_validation import validate_capability_chain
+from .api import verify_capability_chain
 
 __all__ = [
     "DelegationChain",
@@ -54,4 +55,6 @@ __all__ = [
     "verify_envelope",
     "AgentRegistry",
     "DelegationCapability",
+    "verify_capability_chain",
 ]
+
