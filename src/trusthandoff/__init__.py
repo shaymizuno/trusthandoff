@@ -20,6 +20,7 @@ from .api import verify_envelope
 from .hop import DelegationHop
 from .chain_validation import validate_delegation_chain
 from .agent_registry import AgentRegistry
+from .capability import DelegationCapability
 
 __all__ = [
     "DelegationChain",
@@ -50,4 +51,5 @@ __all__ = [
     "validate_packet",
     "verify_envelope",
     "AgentRegistry",
+    "DelegationCapability",
 ]
