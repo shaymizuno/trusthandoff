@@ -20,6 +20,7 @@ def create_packet(
     allowed_actions: list[str] | None = None,
     max_tool_calls: int = 5,
     expires_in_minutes: int = 10,
+    capability_token: str | None = None,
 ) -> SignedTaskPacket:
     if allowed_actions is None:
         allowed_actions = ["read", "search", "summarize"]
@@ -32,6 +33,7 @@ def create_packet(
         issued_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=expires_in_minutes),
         nonce=f"nonce_{uuid4().hex}",
+        capability_token=capability_token,
         intent=state_intent,
         context=state_context,
         permissions=Permissions(
