@@ -8,12 +8,22 @@ from .capability_signing import verify_capability_signature
 from .revocation import CapabilityRevocationRegistry
 from .revocation_validation import is_chain_revoked
 from .execution_control import (execute_authorized_action,execute_packet_authorized_action,)
+from .replay_guard import ReplayGuard
+
+replay_guard = ReplayGuard()
 
 def verify_envelope(
     envelope: DelegationEnvelope,
     max_depth: int = 5,
     registry: AgentRegistry | None = None,
 ) -> PacketDecision:
+    if registry is not None and registry.is_revoked(envelope.packet.from_agent):
+        return PacketDecision(
+            packet_id=envelope.packet.packet_id,
+            decision="REJECT",
+            reason="agent_revoked",
+        )
+
     if registry is not None:
         expected_key = registry.resolve(envelope.packet.from_agent)
 
@@ -29,6 +39,13 @@ def verify_envelope(
                 packet_id=envelope.packet.packet_id,
                 decision="REJECT",
                 reason="Agent identity binding failed",
+            )
+
+        if replay_guard.seen(envelope.packet.from_agent, envelope.packet.nonce):
+            return PacketDecision(
+                packet_id=envelope.packet.packet_id,
+                decision="REJECT",
+                reason="replay_detected",
             )
 
     middleware = TrustHandoffMiddleware(max_depth=max_depth)
