@@ -1,16 +1,26 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "trusthandoff"
 version = "0.2.0"
 description = "Verifiable task delegation between AI agents"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-    "pydantic>=2.0"
+
+authors = [
+  {name = "Shay Mizuno"}
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+license = {text = "MIT"}
+
+dependencies = [
+  "pydantic>=2.0",
+  "cryptography>=42.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest"
+]
+
+[project.urls]
+Homepage = "https://github.com/shaymizuno/trusthandoff"
+Repository = "https://github.com/shaymizuno/trusthandoff"
