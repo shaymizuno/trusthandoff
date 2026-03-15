@@ -1,3 +1,14 @@
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/trusthandoff/trusthandoff/badge)](https://scorecard.dev/viewer/?uri=github.com/trusthandoff/trusthandoff)
+
+[![PyPI version](https://img.shields.io/pypi/v/trusthandoff.svg)](https://pypi.org/project/trusthandoff/)
+
+[![Python versions](https://img.shields.io/pypi/pyversions/trusthandoff.svg)](https://pypi.org/project/trusthandoff/)
+
+[![License](https://img.shields.io/pypi/l/trusthandoff.svg)](https://github.com/trusthandoff/trusthandoff/blob/main/LICENSE)
+
+[![Supply Chain](https://img.shields.io/badge/supply%20chain-Sigstore%20%2B%20SLSA-green)](https://github.com/trusthandoff/trusthandoff/actions)
+Releases are published from GitHub Actions using Trusted Publishing and include verifiable build provenance / attestations.
+
 # TrustHandoff
 
 TrustHandoff is a lightweight protocol and SDK for **verifiable task delegation between AI agents**.
