@@ -33,9 +33,9 @@ jobs:
         run: python -m build
 
       - name: Generate build attestation
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
         with:
           subject-path: 'dist/*'
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@f2e89b06e8e6a6c85b30562091f4f6d7b3a1fc5b
