@@ -243,6 +243,23 @@ Out of scope (for now):
 
 ---
 
+## Roadmap
+
+### v0.2
+Core protocol stabilization
+- Signed task packets
+- Delegation chain verification
+- Adapter support (LangGraph, CrewAI, etc.)
+- Middleware verification pipeline
+
+### v0.3+
+Execution Attestation Layer
+- Verifiable completion proofs
+- Execution receipts
+- Optional TEE / zk-based attestation mechanisms
+
+---
+
 # License
 
 MIT
