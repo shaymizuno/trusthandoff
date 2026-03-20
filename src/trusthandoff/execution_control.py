@@ -1,3 +1,4 @@
+import os
 from typing import Any, Callable
 
 from .agent_registry import AgentRegistry
@@ -12,7 +13,13 @@ from .packet import SignedTaskPacket
 from .capability_extraction import extract_capability_token
 from .policy import DelegationPolicy, allow_all_policy
 
-AudiHook = Callable[[str, str | None], None]
+
+AuditHook = Callable[[str, dict[str, Any]], None]
+
+
+def _strict_mode_enabled() -> bool:
+    return os.getenv("TRUSTHANDOFF_STRICT_MODE", "0") == "1"
+
 
 def execute_authorized_action(
     capabilities: list[DelegationCapability],
@@ -21,8 +28,8 @@ def execute_authorized_action(
     registry: AgentRegistry | None = None,
     revocation_registry: CapabilityRevocationRegistry | None = None,
     tool_calls_used: int = 0,
-    policy: DelegationPolicy = allow_all_policy,
-    audit_hook: AudiHook | None = None,
+    policy: DelegationPolicy | None = None,
+    audit_hook: AuditHook | None = None,
 ) -> tuple[bool, Any]:
     """
     Executes a callable only if the capability chain is valid and the action is authorized.
@@ -30,8 +37,28 @@ def execute_authorized_action(
 
     if not capabilities:
         if audit_hook:
-            audit_hook("no_capabilities", None)
+            audit_hook(
+                "no_capabilities",
+                {
+                    "action": action,
+                    "capability_count": 0,
+                },
+            )
         return False, None
+
+    if policy is None:
+        if _strict_mode_enabled():
+            if audit_hook:
+                audit_hook(
+                    "no_policy_provided",
+                    {
+                        "action": action,
+                        "capability_count": len(capabilities),
+                        "strict_mode": True,
+                    },
+                )
+            return False, "no_policy_provided"
+        policy = allow_all_policy
 
     if not verify_capability_chain_for_execution(
         capabilities,
@@ -39,16 +66,33 @@ def execute_authorized_action(
         revocation_registry=revocation_registry,
     ):
         if audit_hook:
-            audit_hook("capability_chin_invalid", None)
+            audit_hook(
+                "capability_chain_invalid",
+                {
+                    "action": action,
+                    "capability_count": len(capabilities),
+                    "leaf_capability_id": capabilities[-1].capability_id,
+                },
+            )
         return False, None
 
     leaf_capability = capabilities[-1]
-    allowed, reason = policy(leaf_capability, action)
 
-    if not allowed:
-        if audit_hook:
-            audit_hook("policy_denied", reason)
-        return False, reason
+    for cap in capabilities:
+        allowed, reason = policy(cap, action)
+        if not allowed:
+            if audit_hook:
+                audit_hook(
+                    "policy_denied",
+                    {
+                        "action": action,
+                        "reason": reason,
+                        "capability_id": cap.capability_id,
+                        "issuer_agent": cap.issuer_agent,
+                        "subject_agent": cap.subject_agent,
+                    },
+                )
+            return False, reason
 
     if not is_action_authorized(
         leaf_capability,
@@ -56,11 +100,29 @@ def execute_authorized_action(
         tool_calls_used=tool_calls_used,
     ):
         if audit_hook:
-            audit_hook("action_not_authorized", action)
+            audit_hook(
+                "action_not_authorized",
+                {
+                    "action": action,
+                    "leaf_capability_id": leaf_capability.capability_id,
+                    "issuer_agent": leaf_capability.issuer_agent,
+                    "subject_agent": leaf_capability.subject_agent,
+                    "tool_calls_used": tool_calls_used,
+                },
+            )
         return False, None
 
     if audit_hook:
-        audit_hook("execution_allowed", action)
+        audit_hook(
+            "execution_allowed",
+            {
+                "action": action,
+                "leaf_capability_id": leaf_capability.capability_id,
+                "issuer_agent": leaf_capability.issuer_agent,
+                "subject_agent": leaf_capability.subject_agent,
+                "tool_calls_used": tool_calls_used,
+            },
+        )
 
     return True, fn()
 
@@ -71,6 +133,8 @@ def execute_packet_authorized_action(
     registry: AgentRegistry | None = None,
     revocation_registry: CapabilityRevocationRegistry | None = None,
     tool_calls_used: int = 0,
+    policy: DelegationPolicy | None = None,
+    audit_hook: AuditHook | None = None,
 ) -> tuple[bool, Any]:
     """
     Executes a callable only if the packet carries a valid capability token
@@ -79,6 +143,14 @@ def execute_packet_authorized_action(
 
     token = extract_capability_token(packet)
     if token is None:
+        if audit_hook:
+            audit_hook(
+                "missing_capability_token",
+                {
+                    "packet_id": packet.packet_id,
+                    "action": packet.intent,
+                },
+            )
         return False, None
 
     capability = decode_capability_token(token)
@@ -90,7 +162,10 @@ def execute_packet_authorized_action(
         registry=registry,
         revocation_registry=revocation_registry,
         tool_calls_used=tool_calls_used,
+        policy=policy,
+        audit_hook=audit_hook,
     )
+
 
 def verify_capability_chain_for_execution(
     capabilities: list[DelegationCapability],
@@ -103,7 +178,10 @@ def verify_capability_chain_for_execution(
 
     if registry is not None:
         for cap in capabilities:
-            if revocation_registry is not None and revocation_registry.is_revoked(cap.capability_id):
+            if (
+                revocation_registry is not None
+                and revocation_registry.is_revoked(cap.capability_id)
+            ):
                 return False
 
             expected_key = registry.resolve(cap.issuer_agent)
