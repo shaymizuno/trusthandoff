@@ -22,8 +22,8 @@ def test_validate_packet_returns_true_for_valid_packet():
         signature="demo-signature",
         public_key="demo-public-key",
     )
-
-    assert validate_packet(packet) is True
+    result = validate_packet(packet)
+    assert result.is_valid is True
 
 
 def test_validate_packet_returns_false_for_expired_packet():
@@ -45,5 +45,5 @@ def test_validate_packet_returns_false_for_expired_packet():
         signature="demo-signature",
         public_key="demo-public-key",
     )
-
-    assert validate_packet(packet) is False
+    result = validate_packet(packet)
+    assert result.is_valid is False
