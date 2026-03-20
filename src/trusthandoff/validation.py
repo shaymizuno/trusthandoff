@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 
 from .packet import SignedTaskPacket
@@ -23,20 +24,26 @@ ISSUANCE_SKEW_TOLERANCE = timedelta(seconds=DEFAULT_ISSUANCE_SKEW_SECONDS)
 EXPIRY_GRACE = timedelta(seconds=DEFAULT_EXPIRY_GRACE_SECONDS)
 
 
+@dataclass(frozen=True)
+class PacketValidationResult:
+    is_valid: bool
+    reason: str | None = None
+
+
 def validate_packet(
     packet: SignedTaskPacket,
     issuance_skew: timedelta = ISSUANCE_SKEW_TOLERANCE,
     expiry_grace: timedelta = EXPIRY_GRACE,
-) -> bool:
+) -> PacketValidationResult:
     now = datetime.now(timezone.utc)
 
     if packet.issued_at > packet.expires_at:
-        return False
+        return PacketValidationResult(False, "malformed_time_window")
 
     if packet.issued_at - issuance_skew > now:
-        return False
+        return PacketValidationResult(False, "issued_in_future")
 
     if packet.expires_at + expiry_grace < now:
-        return False
+        return PacketValidationResult(False, "expired")
 
-    return True
+    return PacketValidationResult(True, None)
