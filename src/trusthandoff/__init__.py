@@ -30,9 +30,21 @@ from .envelope_security import verify_envelope_security
 from .revocation import CapabilityRevocationRegistry
 from .revocation_validation import is_chain_revoked
 from .authorization import is_action_authorized
-from .execution_control import (execute_authorized_action, execute_packet_authorized_action,)
+from .execution_control import (
+    execute_authorized_action,
+    execute_packet_authorized_action,
+)
 from .capability_propagation import derive_capability_token
 from .packet_propagation import derive_packet_with_capability
+
+# Attestation (v0.3 core)
+from .attestation import (
+    ExecutionAttestation,
+    create_attestation,
+    verify_attestation,
+    canonical_json_hash,
+    validate_attestation_payload,
+)
 
 __all__ = [
     "DelegationChain",
@@ -74,9 +86,29 @@ __all__ = [
     "verify_envelope_security",
     "CapabilityRevocationRegistry",
     "is_chain_revoked",
-    "is_action_authrorized",
+    "is_action_authorized",
     "execute_authorized_action",
+    "execute_packet_authorized_action",
     "derive_capability_token",
     "derive_packet_with_capability",
+    # Attestation
+    "ExecutionAttestation",
+    "create_attestation",
+    "verify_attestation",
+    "canonical_json_hash",
+    "validate_attestation_payload",
 ]
 
+# Stable public core surface for v0.3
+CORE_API = [
+    "SignedTaskPacket",
+    "PacketDecision",
+    "sign_packet",
+    "verify_packet",
+    "process_handoff",
+    "ExecutionAttestation",
+    "create_attestation",
+    "verify_attestation",
+    "canonical_json_hash",
+    "validate_attestation_payload",
+]

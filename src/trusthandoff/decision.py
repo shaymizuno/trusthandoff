@@ -1,6 +1,8 @@
 from typing import Literal, Optional, Dict, Any
 from pydantic import BaseModel, field_validator, ConfigDict
 
+from .attestation import ExecutionAttestation
+
 
 DecisionType = Literal["ACCEPT", "REJECT"]
 
@@ -71,6 +73,7 @@ class PacketDecision(BaseModel):
     decision: DecisionType
     reason: Optional[str] = None
     details: Optional[Dict[str, Any]] = None
+    execution_attestation: Optional[ExecutionAttestation] = None
 
     model_config = ConfigDict(
         frozen=True,
