@@ -36,6 +36,7 @@ from .execution_control import (
 )
 from .capability_propagation import derive_capability_token
 from .packet_propagation import derive_packet_with_capability
+from .identity import AgentIdentity
 
 # Attestation (v0.3 core)
 from .attestation import (
@@ -91,6 +92,7 @@ __all__ = [
     "execute_packet_authorized_action",
     "derive_capability_token",
     "derive_packet_with_capability",
+    "AgentIdentity",
     # Attestation
     "ExecutionAttestation",
     "create_attestation",
