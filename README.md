@@ -110,18 +110,6 @@ Result:
 
 **deterministic delegation pipeline**
 
-## Demo Coming Soon (attack vs protection)
-
-<!-- INSERT VIDEO / GIF HERE -->
-
-This demo should show:
-
-- replay attack or forged delegation
-- over-permissioned execution attempt
-- TrustHandoff rejection with reason
-
-This is the fastest way to understand the value.
-
 ## Security pipeline
 
 Every packet goes through:
