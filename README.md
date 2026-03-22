@@ -9,6 +9,18 @@
 [![Supply Chain](https://img.shields.io/badge/supply%20chain-Sigstore%20%2B%20SLSA-green)](https://github.com/trusthandoff/trusthandoff/actions)
 Releases are published from GitHub Actions using Trusted Publishing and include verifiable build provenance / attestations.
 
+## ⚔️ Attack Demo
+
+<p align="center">
+  <img src="assets/DEMOATTACK_TRUSTHANDOFF.gif" width="600"/>
+</p>
+
+> Legit output → accepted  
+> Tampered output → rejected  
+> Replay → rejected  
+
+**Execution without proof is trust theater.**
+
 # TrustHandoff
 
 TrustHandoff is the **delegation and accountability layer for agent systems**.
