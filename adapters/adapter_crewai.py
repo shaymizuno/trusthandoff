@@ -1,83 +1,179 @@
-from datetime import datetime, timedelta, timezone
-from uuid import uuid4
+import logging
+from typing import Any, Callable, Dict, Optional, Set, Tuple
 
 from trusthandoff import (
-    AgentIdentity,
-    DelegationChain,
-    DelegationEnvelope,
-    Permissions,
-    SignedTaskPacket,
-    process_handoff,
-    sign_packet,
+    ExecutionAttestation,
+    create_attestation,
+    validate_attestation_payload,
+    verify_attestation,
 )
 
-
-def create_packet(
-    from_identity: AgentIdentity,
-    to_agent_id: str,
-    intent: str,
-    context: dict,
-    allowed_actions: list[str] | None = None,
-    max_tool_calls: int = 5,
-    expires_in_minutes: int = 10,
-) -> SignedTaskPacket:
-    if allowed_actions is None:
-        allowed_actions = ["read", "search", "summarize"]
-
-    return SignedTaskPacket(
-        packet_id=f"pk_{uuid4().hex}",
-        task_id=f"task_{uuid4().hex}",
-        from_agent=from_identity.agent_id,
-        to_agent=to_agent_id,
-        issued_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=expires_in_minutes),
-        nonce=f"nonce_{uuid4().hex}",
-        intent=intent,
-        context=context,
-        permissions=Permissions(
-            allowed_actions=allowed_actions,
-            max_tool_calls=max_tool_calls,
-        ),
-        signature_algo="Ed25519",
-        signature="",
-        public_key=from_identity.public_key_pem,
-    )
+logger = logging.getLogger(__name__)
 
 
-def create_envelope(packet: SignedTaskPacket) -> DelegationEnvelope:
-    chain = DelegationChain(
-        packet_ids=[packet.packet_id],
-        agents=[packet.from_agent],
-    )
-    return DelegationEnvelope(packet=packet, chain=chain)
+class TrustHandoffCrewAIAdapter:
+    def __init__(self, identity, packet_id_key: str = "packet_id"):
+        self.identity = identity
+        self.packet_id_key = packet_id_key
 
+    def wrap_node(self, fn: Callable[[Dict[str, Any]], Dict[str, Any]]):
+        def wrapped(state: Dict[str, Any]) -> Dict[str, Any]:
+            packet_id = state.get(self.packet_id_key)
+            if not packet_id:
+                raise ValueError(f"Missing {self.packet_id_key!r} in state")
+
+            attestation: Optional[ExecutionAttestation] = None
+
+            try:
+                result = fn(state)
+            except Exception as node_exc:
+                logger.error(
+                    "CrewAI task failed",
+                    exc_info=node_exc,
+                    extra={"packet_id": packet_id},
+                )
+
+                error_result: Dict[str, Any] = {
+                    "error": str(node_exc),
+                    "error_type": type(node_exc).__name__,
+                }
+
+                try:
+                    attestation = create_attestation(
+                        packet_id=packet_id,
+                        result=error_result,
+                        identity=self.identity,
+                        status="ERROR",
+                        reason={"node_error": True},
+                    )
+                except Exception as attest_exc:
+                    logger.error(
+                        "Attestation failed after CrewAI error",
+                        exc_info=attest_exc,
+                        extra={"packet_id": packet_id},
+                    )
+                    error_result["attestation_failure"] = str(attest_exc)
+                    attestation = None
+
+                return {
+                    "result": error_result,
+                    "attestation": attestation,
+                }
+
+            validate_attestation_payload(result)
+
+            try:
+                attestation = create_attestation(
+                    packet_id=packet_id,
+                    result=result,
+                    identity=self.identity,
+                    status="OK",
+                )
+            except Exception as attest_exc:
+                logger.error(
+                    "Attestation failed after successful CrewAI execution",
+                    exc_info=attest_exc,
+                    extra={"packet_id": packet_id},
+                )
+                result = {
+                    "original_result": result,
+                    "attestation_failure": str(attest_exc),
+                }
+                attestation = None
+
+            return {
+                "result": result,
+                "attestation": attestation,
+            }
+
+        return wrapped
+
+    def verify_node_output(
+        self,
+        output: Dict[str, Any],
+        public_key_pem: str,
+        max_age_seconds: int = 300,
+        current_timestamp_ms: Optional[int] = None,
+        seen_nonces: Optional[Set[Tuple[str, int]]] = None,
+    ) -> bool:
+        if not isinstance(output, dict):
+            return False
+
+        attestation_raw = output.get("attestation")
+        result = output.get("result")
+
+        if result is None:
+            return False
+
+        if attestation_raw is None:
+            logger.warning("verify_node_output: attestation is None")
+            return False
+
+        attestation: Optional[ExecutionAttestation] = None
+
+        if isinstance(attestation_raw, dict):
+            try:
+                attestation = ExecutionAttestation.model_validate(attestation_raw)
+            except Exception as exc:
+                logger.warning(
+                    "verify_node_output: attestation deserialization failed",
+                    exc_info=exc,
+                )
+                return False
+        elif isinstance(attestation_raw, ExecutionAttestation):
+            attestation = attestation_raw
+        else:
+            return False
+
+        if not verify_attestation(
+            attestation=attestation,
+            result=result,
+            public_key_pem=public_key_pem,
+            max_age_seconds=max_age_seconds,
+            now_ms=current_timestamp_ms,
+        ):
+            return False
+
+        if seen_nonces is not None:
+            nonce_key: Tuple[str, int] = (
+                attestation.agent_pubkey_fingerprint,
+                attestation.nonce,
+            )
+            if nonce_key in seen_nonces:
+                logger.warning(
+                    "verify_node_output: replay detected",
+                    extra={"fingerprint": attestation.agent_pubkey_fingerprint},
+                )
+                return False
+            seen_nonces.add(nonce_key)
+
+        return True
+
+
+def pretty_print_attestation(attestation: ExecutionAttestation) -> dict:
+    return {
+        "packet_id": attestation.packet_id,
+        "status": attestation.status,
+        "hash": attestation.outcome_hash[:12] + "...",
+        "signed_by": attestation.signed_by,
+        "timestamp_ms": attestation.timestamp_ms,
+        "nonce": hex(attestation.nonce)[:10] + "...",
+    }
 
 def process_framework_handoff(
-    from_identity: AgentIdentity,
+    from_identity,
     to_agent_id: str,
     intent: str,
     context: dict,
-    allowed_actions: list[str] | None = None,
-    max_tool_calls: int = 5,
 ):
-    packet = create_packet(
+    """
+    CrewAI-compatible entrypoint using core TrustHandoff pipeline.
+    """
+    from trusthandoff import process_handoff
+
+    return process_handoff(
         from_identity=from_identity,
         to_agent_id=to_agent_id,
         intent=intent,
         context=context,
-        allowed_actions=allowed_actions,
-        max_tool_calls=max_tool_calls,
     )
-
-    signed_packet = sign_packet(packet, from_identity)
-    envelope = create_envelope(signed_packet)
-    decision = process_handoff(envelope.packet)
-
-    if decision.decision == "ACCEPT":
-        envelope.chain.add_handoff(signed_packet.packet_id, to_agent_id)
-
-    return {
-        "packet": signed_packet,
-        "envelope": envelope,
-        "decision": decision,
-    }
