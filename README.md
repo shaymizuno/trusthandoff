@@ -12,7 +12,7 @@ Releases are published from GitHub Actions using Trusted Publishing and include 
 ## ⚔️ Attack Demo
 
 <p align="center">
-  <img src="demoattack_trusthandoff_gif" width="600"/>
+  <img src="demoattack_trusthandoff_gif.gif" width="600"/>
 </p>
 
 > Legit output → accepted  
