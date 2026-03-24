@@ -2,9 +2,13 @@ from trusthandoff.envelope import DelegationEnvelope
 from trusthandoff.decision import PacketDecision
 from trusthandoff.replay import ReplayProtection
 from trusthandoff.depth import within_max_depth
+from trusthandoff.replay import ReplayProtection
 
 replay_store = ReplayProtection()
 
+def reset_replay_store():
+    global replay_store
+    replay_store = ReplayProtection()
 
 def replay_check(envelope: DelegationEnvelope) -> PacketDecision:
     packet = envelope.packet

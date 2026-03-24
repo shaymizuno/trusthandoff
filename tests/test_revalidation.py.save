@@ -1,0 +1,23 @@
+
+
+
+
+def test_revalidation_triggers_stale():
+    called = {"ok": True}
+
+    def revalidate():
+        return called["ok"]
+
+    watcher = RevalidationWatcher(
+        revalidate_fn=revalidate,
+        capability_id="test-cap",
+        revalidate_every_seconds=0.2,
+    )
+
+    with watcher:
+        time.sleep(0.3)
+        called["ok"] = False
+        time.sleep(0.3)
+
+        with pytest.raises(StaleCapabilityError):
+            watcher.raise_if_stale()

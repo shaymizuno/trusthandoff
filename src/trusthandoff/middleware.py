@@ -1,24 +1,32 @@
+import logging
+from typing import Callable, Optional
+
 from .decision import PacketDecision
 from .envelope import DelegationEnvelope
-from .handoff import process_handoff
-from .replay import ReplayProtection
+from .handoff import AuditCollector, process_handoff
+from .loop import ReplayProtection
 from .depth import within_max_depth
+from .revalidation import RevalidationWatcher
+
+logger = logging.getLogger(__name__)
 
 
 class TrustHandoffMiddleware:
-    """
-    Minimal middleware entrypoint for TrustHandoff.
-    """
-
     def __init__(
         self,
         replay_protection: ReplayProtection | None = None,
         max_depth: int = 5,
+        revalidate_every_seconds: Optional[float] = None,
     ):
         self.replay_protection = replay_protection or ReplayProtection()
         self.max_depth = max_depth
+        self.revalidate_every_seconds = revalidate_every_seconds
 
-    def handle(self, envelope: DelegationEnvelope) -> PacketDecision:
+    def handle(
+        self,
+        envelope: DelegationEnvelope,
+        audit_collector: AuditCollector | None = None,
+    ) -> PacketDecision:
         nonce = envelope.packet.nonce
 
         if not self.replay_protection.check_and_store(nonce):
@@ -35,4 +43,47 @@ class TrustHandoffMiddleware:
                 reason="Delegation depth exceeded",
             )
 
-        return process_handoff(envelope.packet)
+        return process_handoff(
+            envelope.packet,
+            audit_collector=audit_collector,
+        )
+
+    def handle_with_revalidation(
+        self,
+        envelope: DelegationEnvelope,
+        revalidate_fn: Callable[[], bool],
+        audit_collector: AuditCollector | None = None,
+    ) -> tuple[PacketDecision, RevalidationWatcher | None]:
+        """
+        Full validation + optional background revalidation for long-running tasks.
+
+        Returns:
+            (decision, watcher) — caller must stop the watcher when done.
+        """
+        decision = self.handle(envelope, audit_collector=audit_collector)
+
+        if decision.decision != "ACCEPT":
+            return decision, None
+
+        if self.revalidate_every_seconds is None or self.revalidate_every_seconds <= 0:
+            return decision, None
+
+        if revalidate_fn is None:
+            raise ValueError("revalidate_fn must be provided when revalidation is enabled")
+
+        watcher = RevalidationWatcher(
+            revalidate_fn=revalidate_fn,
+            capability_id=envelope.packet.packet_id,
+            revalidate_every_seconds=self.revalidate_every_seconds,
+        )
+        watcher.start()
+
+        logger.info(
+            "Started background revalidation watcher",
+            extra={
+                "packet_id": envelope.packet.packet_id,
+                "interval": self.revalidate_every_seconds,
+            },
+        )
+
+        return decision, watcher
