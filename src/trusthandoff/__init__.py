@@ -37,6 +37,7 @@ from .execution_control import (
 from .capability_propagation import derive_capability_token
 from .packet_propagation import derive_packet_with_capability
 from .identity import AgentIdentity
+from .revalidation import RevalidationWatcher
 
 # Attestation (v0.3 core)
 from .attestation import (
@@ -46,6 +47,23 @@ from .attestation import (
     canonical_json_hash,
     validate_attestation_payload,
 )
+# Errors.py
+from .errors import (
+    TrustHandoffError,
+    AttestationError,
+    VerificationError,
+    ReplayAttackError,
+    InvalidSignatureError,
+    PayloadValidationError,
+    CanonicalizationError,
+    CapabilityError,
+    StaleCapabilityError,
+    RevocationConsistencyError,
+    AdapterError,
+    MissingPacketIDError,
+    MiddlewareExecutionError,
+)
+
 
 __all__ = [
     "DelegationChain",
@@ -99,6 +117,22 @@ __all__ = [
     "verify_attestation",
     "canonical_json_hash",
     "validate_attestation_payload",
+    # Errors.py
+    "TrustHandoffError",
+    "AttestationError",
+    "VerificationError",
+    "ReplayAttackError",
+    "InvalidSignatureError",
+    "PayloadValidationError",
+    "CanonicalizationError",
+    "CapabilityError",
+    "StaleCapabilityError",
+    "RevocationConsistencyError",
+    "AdapterError",
+    "MissingPacketIDError",
+    "MiddlewareExecutionError",
+    # Watcher
+    "RevalidationWatcher",
 ]
 
 # Stable public core surface for v0.3

@@ -262,12 +262,70 @@ v0.2
 - middleware pipeline  
 - adapters  
 
-v0.3+
+## ✨ v0.3.2 — Runtime Revalidation & Execution Integrity
 
-- execution attestation layer  
-- verifiable completion proofs  
-- execution receipts  
-- optional TEE / zk attestation  
+This release introduces runtime capability revalidation and strengthens execution guarantees for agent systems.
+
+### 🔐 New: Runtime Revalidation
+
+Long-running tasks can now detect capability drift during execution:
+
+```python
+decision, watcher = middleware.handle_with_revalidation(
+    envelope,
+    revalidate_fn=my_check_fn,
+)
+```
+
+- Detects revoked or expired permissions mid-task  
+- Raises:
+  - StaleCapabilityError
+  - RevocationConsistencyError  
+- Runs in the background with jitter + safe minimum interval  
+- Fully backward compatible  
+
+---
+
+### 🧠 What This Solves
+
+Modern agent systems trust intermediate outputs by convention.
+
+TrustHandoff makes execution:
+- tamper-evident  
+- replay-resistant  
+- runtime-verifiable  
+
+---
+
+### ⚠️ Current Scope
+
+This version provides:
+- Local replay protection (per instance)  
+- Deterministic execution attestation  
+- Runtime revalidation hooks  
+
+It does NOT yet include:
+- Distributed replay protection  
+- Shared revocation registries  
+- Cross-node capability invalidation  
+
+---
+
+### 🚧 Where This Is Going
+
+TrustHandoff is evolving toward a distributed execution integrity layer for agent systems.
+
+Planned directions:
+
+- Distributed nonce tracking (Redis / TTL-based)  
+- Shared revocation registries  
+- Cross-agent capability invalidation  
+- Network-aware trust boundaries  
+
+The goal is simple:
+
+Make agent execution provable across systems, not just within a single process.
+
 
 ## License
 

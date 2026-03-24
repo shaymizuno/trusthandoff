@@ -1,6 +1,6 @@
 [project]
 name = "trusthandoff"
-version = "0.3.1"
+version = "0.3.2"
 description = "Verifiable task delegation between AI agents"
 readme = "README.md"
 requires-python = ">=3.11"
