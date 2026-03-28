@@ -3,7 +3,7 @@ import time
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives import serialization
 
-from adapters.adapter_langgraph import TrustHandoffLangGraphAdapter
+from trusthandoff.adapters.adapter_langgraph import TrustHandoffLangGraphAdapter
 
 
 RED = "\033[91m"
