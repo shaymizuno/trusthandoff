@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta
 
-from trusthandoff import Permissions, SignedTaskPacket, validate_packet
-
+from trusthandoff.packet import SignedTaskPacket, Permissions
+from trusthandoff.validation import validate_packet
 
 def test_validate_packet_returns_true_for_valid_packet():
     packet = SignedTaskPacket(
@@ -47,3 +47,34 @@ def test_validate_packet_returns_false_for_expired_packet():
     )
     result = validate_packet(packet)
     assert result.is_valid is False
+
+
+def test_validate_packet_strict_default_ttl_policy(monkeypatch):
+    monkeypatch.setenv("TRUSTHANDOFF_ENFORCE_DEFAULT_TTL_POLICY", "1")
+
+    # Re-import module-level flag by reloading validation
+    import importlib
+    import trusthandoff.validation as validation_module
+    importlib.reload(validation_module)
+
+    issued = datetime.now(timezone.utc)
+
+    # Legacy packet with 10 min TTL should fail under strict default read policy (900s)
+    packet = SignedTaskPacket(
+        packet_id="strict-1",
+        task_id="task-strict",
+        from_agent="a",
+        to_agent="b",
+        issued_at=issued,
+        expires_at=issued + timedelta(minutes=10),  # 600s, mismatch vs read=900s
+        nonce="n",
+        intent="read_something",
+        permissions=Permissions(),
+        signature_algo="algo",
+        signature="sig",
+        public_key="pk",
+    )
+
+    result = validation_module.validate_packet(packet)
+    assert result.is_valid is False
+    assert result.reason == "ttl_policy_mismatch"
