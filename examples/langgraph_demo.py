@@ -4,6 +4,14 @@ from cryptography.hazmat.primitives import serialization
 
 from trusthandoff.adapters.adapter_langgraph import TrustHandoffLangGraphAdapter
 
+GREEN = "\033[92m"
+RED = "\033[91m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+def verdict(ok: bool) -> str:
+    return GREEN + "✅" + RESET if ok else RED + "❌" + RESET
+
 class MockIdentity:
     def __init__(self, agent_id: str):
         self.agent_id = agent_id
@@ -63,7 +71,7 @@ def print_output(title: str, output: dict):
 
 
 def main():
-    logging.getLogger("adapters.adapter_langgraph").setLevel(logging.ERROR)
+    logging.getLogger("trusthandoff.adapters.adapter_langgraph").setLevel(logging.ERROR)
 
     identity = MockIdentity("agent:langgraph-demo")
     adapter = TrustHandoffLangGraphAdapter(identity)
@@ -80,7 +88,7 @@ def main():
     )
 
     print_output("1) PLANNER NODE", planner_output)
-    print("verification:", planner_ok)
+    print("verification:", verdict(planner_ok))
     print()
 
     wrapped_researcher = adapter.wrap_node(researcher_node)
@@ -92,8 +100,10 @@ def main():
     )
 
     print_output("2) RESEARCHER NODE", researcher_output)
-    print("verification:", researcher_ok)
+    print("verification:", verdict(researcher_ok))
     print()
+
+    print("\n--- ATTACK: tampering output ---")
 
     tampered_output = {
         "result": {
@@ -111,14 +121,10 @@ def main():
     )
 
     print_output("3) TAMPERED HANDOFF", tampered_output)
-    print("verification:", tampered_ok)
+    print("verification:", verdict(tampered_ok))
     print()
 
-    print("TAKEAWAY")
-    print("- node output can be attested at the handoff boundary")
-    print("- valid node output verifies")
-    print("- modified node output is rejected")
-
+    print("\n--- ATTACK: replaying output ---")
 
     replay_ok = adapter.verify_node_output(
         researcher_output,
@@ -127,8 +133,13 @@ def main():
     )
 
     print_output("4) REPLAYED HANDOFF", researcher_output)
-    print("verification:", replay_ok)
+    print("verification:", verdict(replay_ok))
     print()
+
+    print("TAKEAWAY")
+    print("- node output can be attested at the handoff boundary")
+    print("- valid node output verifies")
+    print("- modified node output is rejected")
 
 if __name__ == "__main__":
     main()
