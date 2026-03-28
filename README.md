@@ -195,6 +195,39 @@ Supported:
 
 Adapters map framework-native delegation into TrustHandoff primitives.
 
+## Live demo (LangGraph)
+
+Minimal example of verifiable agent execution at the handoff boundary.
+
+Run:
+
+```bash
+PYTHONPATH=src python examples/langgraph_demo.py
+```
+
+Expected behavior:
+
+- Valid execution → accepted  
+- Tampered output → rejected  
+- Replay → rejected  
+
+Example:
+
+```
+1) PLANNER NODE → verification: True
+2) RESEARCHER NODE → verification: True
+3) TAMPERED HANDOFF → verification: False
+4) REPLAYED HANDOFF → verification: False
+```
+
+This demonstrates:
+- deterministic execution attestation  
+- tamper detection  
+- replay protection via nonce tracking  
+
+The critical surface is not the model.  
+It is the handoff.
+
 ## Positioning
 
 TrustHandoff is NOT:

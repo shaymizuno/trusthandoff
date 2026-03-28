@@ -1,4 +1,4 @@
-from adapters.adapter_autogen import TrustHandoffAutoGenAdapter
+from trusthandoff.adapters.adapter_autogen import TrustHandoffAutoGenAdapter
 
 
 class MockIdentity:

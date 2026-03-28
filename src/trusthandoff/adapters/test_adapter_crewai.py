@@ -1,5 +1,5 @@
 from trusthandoff import AgentIdentity
-from adapters.adapter_crewai import process_framework_handoff
+from trusthandoff.adapters.adapter_crewai import process_framework_handoff
 
 
 def main():
