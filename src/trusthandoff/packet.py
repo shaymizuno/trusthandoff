@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, model_validator
@@ -42,7 +42,7 @@ class SignedTaskPacket(BaseModel):
     signature: str
     public_key: str
 
-    # New optional policy metadata
+    # Optional TTL/risk metadata
     risk_level: Optional[str] = None
     ttl_seconds: Optional[int] = None
 
@@ -61,7 +61,6 @@ class SignedTaskPacket(BaseModel):
         - If expires_at is provided and mismatches the resolved TTL:
           reject the packet.
         """
-        # Backward-compatible: do nothing for old packets
         if self.risk_level is None and self.ttl_seconds is None:
             return self
 
@@ -83,8 +82,62 @@ class SignedTaskPacket(BaseModel):
                 f"(risk_level={resolved_risk}, ttl_seconds={resolved_ttl})"
             )
 
-        # Normalize resolved values onto the packet
         self.risk_level = resolved_risk
         self.ttl_seconds = resolved_ttl
-
         return self
+
+    @classmethod
+    def from_task(
+        cls,
+        *,
+        task,
+        packet_id: str,
+        task_id: str,
+        from_agent: str,
+        to_agent: str,
+        nonce: str,
+        intent: str,
+        permissions: Permissions,
+        signature_algo: str,
+        signature: str,
+        public_key: str,
+        capability_token: Optional[str] = None,
+        issued_at: Optional[datetime] = None,
+        task_type: Optional[str] = None,
+        goal: Optional[str] = None,
+        context: Optional[Dict[str, Any]] = None,
+        memory_refs: Optional[List[str]] = None,
+        constraints: Optional[Constraints] = None,
+        provenance: Optional[Provenance] = None,
+    ) -> "SignedTaskPacket":
+        """
+        Build a packet from a decorated task, propagating TTL/risk metadata
+        into the packet so the packet-layer validator can enforce policy.
+        """
+        issued_at = issued_at or datetime.now(timezone.utc)
+
+        task_meta = getattr(task, "_trusthandoff_metadata", {}) or {}
+
+        return cls(
+            packet_id=packet_id,
+            task_id=task_id,
+            from_agent=from_agent,
+            to_agent=to_agent,
+            issued_at=issued_at,
+            expires_at=None,
+            nonce=nonce,
+            capability_token=capability_token,
+            intent=intent,
+            task_type=task_type,
+            goal=goal,
+            context=context or {},
+            memory_refs=memory_refs or [],
+            permissions=permissions,
+            constraints=constraints,
+            provenance=provenance,
+            signature_algo=signature_algo,
+            signature=signature,
+            public_key=public_key,
+            risk_level=task_meta.get("risk_level"),
+            ttl_seconds=task_meta.get("ttl_seconds"),
+        )
