@@ -1,10 +1,13 @@
 import logging
 import random
 import threading
+import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from .errors import StaleCapabilityError, RevocationConsistencyError
+from .events import emit_event
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +17,12 @@ class RevalidationState:
     stale_detected: bool = False
     stale_reason: Optional[str] = None
     is_revocation_stale: bool = False
+
+    # Basic observability
+    last_checked_at: Optional[datetime] = None
+    last_result: Optional[bool] = None
+    elapsed_seconds: float = 0.0
+    last_error: Optional[str] = None
 
 
 class RevalidationWatcher:
@@ -25,6 +34,7 @@ class RevalidationWatcher:
     - Otherwise, it periodically calls `revalidate_fn`.
     - If `revalidate_fn` returns False, the capability is marked stale.
     - If `revalidate_fn` raises, the capability is marked stale with the exception message.
+    - If `expires_at` is set and current time passes it, the capability is marked stale.
     - Caller is responsible for calling `raise_if_stale()`.
     """
 
@@ -37,10 +47,10 @@ class RevalidationWatcher:
         revalidate_every_seconds: Optional[float] = None,
         logger_: Optional[logging.Logger] = None,
         jitter: float = 0.2,
+        expires_at: Optional[datetime] = None,
     ):
         if not capability_id:
             raise ValueError("capability_id must be a non-empty string")
-
         if jitter < 0 or jitter > 1:
             raise ValueError("jitter must be between 0 and 1")
 
@@ -49,11 +59,14 @@ class RevalidationWatcher:
         self.revalidate_every_seconds = revalidate_every_seconds
         self.logger = logger_ or logger
         self.jitter = jitter
+        self.expires_at = expires_at
 
         self.state = RevalidationState()
+
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
+        self._started_at: Optional[float] = None
 
     @property
     def enabled(self) -> bool:
@@ -69,6 +82,7 @@ class RevalidationWatcher:
         if self._thread is not None and self._thread.is_alive():
             return
 
+        self._started_at = time.time()
         self._thread = threading.Thread(
             target=self._run,
             name=f"trusthandoff-revalidation-{self.capability_id}",
@@ -111,36 +125,89 @@ class RevalidationWatcher:
             self.state.stale_detected = True
 
         self.logger.warning(
-            "Revalidation detected stale capability",
+            "Revalidation watcher marked capability stale",
             extra={
                 "capability_id": self.capability_id,
                 "reason": reason,
-                "is_revocation": is_revocation,
+                "is_revocation_stale": is_revocation,
             },
         )
 
+        emit_event(
+            "capability_stale",
+            {
+                "capability_id": self.capability_id,
+                "reason": reason,
+                "is_revocation_stale": is_revocation,
+            },
+        )
+
+    def _record_check(self, result: Optional[bool], error: Optional[str] = None) -> None:
+        now = datetime.now(timezone.utc)
+        with self._lock:
+            self.state.last_checked_at = now
+            self.state.last_result = result
+            self.state.last_error = error
+            if self._started_at is not None:
+                self.state.elapsed_seconds = time.time() - self._started_at
+
+    def _check_expiry(self) -> bool:
+        if self.expires_at is None:
+            return True
+
+        now = datetime.now(timezone.utc)
+        if now >= self.expires_at:
+            self._record_check(False, "expired_by_revalidation_watcher")
+            self._mark_stale("expired_by_revalidation_watcher")
+            return False
+
+        return True
+
     def _effective_interval(self) -> float:
+        """
+        Backward-compatible alias used by tests and older code.
+        """
+        assert self.revalidate_every_seconds is not None
+        return max(self.revalidate_every_seconds, self.MIN_INTERVAL_SECONDS)
+
+
+    def _compute_sleep_interval(self) -> float:
         assert self.revalidate_every_seconds is not None
 
         base = max(self.revalidate_every_seconds, self.MIN_INTERVAL_SECONDS)
-
         if self.jitter == 0:
             return base
 
-        delta = random.uniform(-self.jitter, self.jitter) * base
-        return max(self.MIN_INTERVAL_SECONDS, base + delta)
+        low = base * (1 - self.jitter)
+        high = base * (1 + self.jitter)
+        return max(self.MIN_INTERVAL_SECONDS, random.uniform(low, high))
 
     def _run(self) -> None:
-        while not self._stop_event.wait(self._effective_interval()):
+        while not self._stop_event.is_set():
+            if not self._check_expiry():
+                return
+
             try:
-                ok = self.revalidate_fn()
+                result = self.revalidate_fn()
+                self._record_check(bool(result), None)
+
+                if not result:
+                    self._mark_stale("revalidation_failed")
+                    return
+
+            except RevocationConsistencyError as exc:
+                self._record_check(False, str(exc))
+                self._mark_stale(str(exc), is_revocation=True)
+                return
+
+
             except Exception as exc:
+                self._record_check(False, str(exc))
                 self._mark_stale(
-                    f"revalidation_exception:{type(exc).__name__}:{exc}",
-                    is_revocation=False,
+                    f"revalidation_exception:{type(exc).__name__}:{exc}"
                 )
                 return
 
-            if not ok:
-                self._mark_stale("revalidation_failed", is_revocation=False)
+            sleep_for = self._compute_sleep_interval()
+            if self._stop_event.wait(timeout=sleep_for):
                 return
