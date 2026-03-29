@@ -14,6 +14,7 @@ class Permissions(BaseModel):
 class Constraints(BaseModel):
     max_runtime_seconds: Optional[int] = None
     data_boundary: Optional[str] = None
+    requires_human_review: Optional[bool] = False
 
 
 class Provenance(BaseModel):

@@ -60,6 +60,8 @@ def _resolve_expected_ttl_seconds(packet: SignedTaskPacket) -> int | None:
 
     return None
 
+def _requires_human_review(packet: SignedTaskPacket) -> bool:
+    return bool(packet.constraints and packet.constraints.requires_human_review)
 
 def validate_packet(
     packet: SignedTaskPacket,
@@ -73,6 +75,12 @@ def validate_packet(
 
     if packet.issued_at - issuance_skew > now:
         return PacketValidationResult(False, "issued_in_future")
+
+    if _requires_human_review(packet):
+        human_approval = packet.context.get("human_approval")
+
+        if not human_approval:
+            return PacketValidationResult(False, "human_review_required")
 
     expected_ttl_seconds = _resolve_expected_ttl_seconds(packet)
 
