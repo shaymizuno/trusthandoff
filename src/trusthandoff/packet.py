@@ -46,6 +46,7 @@ class SignedTaskPacket(BaseModel):
     # Optional TTL/risk metadata
     risk_level: Optional[str] = None
     ttl_seconds: Optional[int] = None
+    ai_provenance: Optional[Dict[str, Any]] = None
 
     @model_validator(mode="after")
     def apply_ttl_policy(self):
@@ -87,6 +88,7 @@ class SignedTaskPacket(BaseModel):
         self.ttl_seconds = resolved_ttl
         return self
 
+
     @classmethod
     def from_task(
         cls,
@@ -110,13 +112,16 @@ class SignedTaskPacket(BaseModel):
         memory_refs: Optional[List[str]] = None,
         constraints: Optional[Constraints] = None,
         provenance: Optional[Provenance] = None,
+        ai_provenance: Optional[Dict[str, Any]] = None,
     ) -> "SignedTaskPacket":
         """
-        Build a packet from a decorated task, propagating TTL/risk metadata
-        into the packet so the packet-layer validator can enforce policy.
+        Canonical packet creation rail.
+
+        This is the preferred way to create new packets from decorated tasks.
+        It propagates task metadata into the packet so packet-level validation
+        can enforce policy consistently.
         """
         issued_at = issued_at or datetime.now(timezone.utc)
-
         task_meta = getattr(task, "_trusthandoff_metadata", {}) or {}
 
         return cls(
@@ -141,4 +146,6 @@ class SignedTaskPacket(BaseModel):
             public_key=public_key,
             risk_level=task_meta.get("risk_level"),
             ttl_seconds=task_meta.get("ttl_seconds"),
+            ai_provenance=ai_provenance,
         )
+

@@ -23,347 +23,159 @@ Releases are published from GitHub Actions using Trusted Publishing and include 
 
 # TrustHandoff
 
-TrustHandoff is the **delegation and accountability layer for agent systems**.
+Most agent systems trust execution by convention.
 
-It solves a critical blind spot:
+TrustHandoff makes it provable.
 
-Agents can act.  
-Agents can delegate.  
+---
 
-But today:
+## What this is
 
-→ no system proves what authority they had  
-→ no system proves what actually happened  
-→ no system makes them accountable  
+TrustHandoff is a protocol layer for verifiable delegation and execution integrity in AI agent systems.
 
-TrustHandoff makes delegation **verifiable, enforceable, and auditable**.
+Think TLS for agents — but extended to execution.
 
-## Why this exists
+TLS secures communication.
 
-Modern agent frameworks solve:
+TrustHandoff secures execution.
 
-- orchestration
-- communication
-- tool usage
+---
 
-They do NOT solve:
+## The problem
 
-**verifiable delegation and agent accountability**
+In modern agent systems:
 
-| Layer | What it solves | Example |
-|---|---|---|
-| Agent ↔ tools | tool/context access | MCP |
-| Agent ↔ agent | communication | A2A |
-| Agent orchestration | workflows | LangGraph / CrewAI / AutoGen |
-| **Delegation + accountability** | **verifiable authority + execution trace** | **TrustHandoff** |
+- intermediate outputs are trusted blindly
+- permissions are long-lived and rarely enforced
+- replay and tampering are not first-class concerns
+- execution cannot be audited or proven
 
-Without this layer, systems rely on implicit trust.
+The weakest point is not the model.
 
-That leads to:
-
-- silent privilege escalation
-- replay attacks
-- context poisoning
-- unverifiable execution
-- no accountability
-
-## The shift
-
-TrustHandoff turns agent actions into something:
-
-- signed
-- bounded
-- traceable
-- enforceable
-- auditable
-
-From:
-
-trust the agent  
-
-To:
-
-**verify the delegation + prove the execution**
-
-## Core primitive
-
-SignedTaskPacket
-
-A SignedTaskPacket allows one agent to hand off work to another while preserving:
-
-- authority
-- permissions
-- provenance
-- cryptographic integrity
-
-## What TrustHandoff provides
-
-- Ed25519 signed delegation
-- bounded permissions
-- multi-hop delegation chains
-- nonce + timestamp replay protection
-- revocation enforcement
-- runtime policy enforcement
-- audit hooks
-
-Result:
-
-**deterministic delegation pipeline**
-
-## Security pipeline
-
-Every packet goes through:
-
-1. signature verification  
-2. nonce replay protection  
-3. timestamp validation  
-4. delegation chain validation  
-5. depth + scope enforcement  
-6. revocation checks  
-7. runtime policy enforcement  
-
-No partial trust.  
-Fail-fast validation.
-
-## Runtime policy enforcement
-
-TrustHandoff supports runtime policy hooks:
-
-- deny specific actions
-- restrict execution dynamically
-- enforce environment rules
-
-Strict mode:
-
-TRUSTHANDOFF_STRICT_MODE=1
-
-If no policy is provided, execution is rejected.
-
-## Accountability (v0.3+)
-
-TrustHandoff extends delegation into **agent accountability**.
-
-Agents do not just receive authority — they must prove execution.
-
-This includes:
-
-- execution attestations
-- signed outcomes
-- verifiable result hashes
-- audit trails
-
-Each step in a delegation chain can produce a **cryptographic execution record**.
-
-This enables:
-
-- auditability  
-- traceability  
-- post-mortem analysis  
-- compliance-ready logs  
-
-From:
-
-“the agent says it did it”  
-
-To:
-
-**the system proves it happened**
-
-## Threat model
-
-TrustHandoff reduces or blocks:
-
-- impersonation  
-- replay attacks  
-- unbounded delegation  
-- context poisoning  
-- authority spoofing  
-
-Out of scope:
-
-- side-channel attacks  
-- denial-of-service  
-- physical key theft  
-
-## Framework adapters
-
-Supported:
-
-- CrewAI  
-- AutoGen  
-- LangGraph  
-
-Adapters map framework-native delegation into TrustHandoff primitives.
-
-## Live demo (LangGraph)
-
-Minimal example of verifiable agent execution at the handoff boundary.
-
-Run:
-
-```bash
-PYTHONPATH=src python examples/langgraph_demo.py
-```
-
-Expected behavior:
-
-- Valid execution → accepted  
-- Tampered output → rejected  
-- Replay → rejected  
-
-Example:
-
-```
-1) PLANNER NODE → verification: True
-2) RESEARCHER NODE → verification: True
-3) TAMPERED HANDOFF → verification: False
-4) REPLAYED HANDOFF → verification: False
-```
-
-This demonstrates:
-- deterministic execution attestation  
-- tamper detection  
-- replay protection via nonce tracking  
-
-The critical surface is not the model.  
 It is the handoff.
 
-## Positioning
+---
 
-TrustHandoff is NOT:
+## What TrustHandoff does
 
-- a transport layer  
-- a message bus  
-- an orchestration system  
+TrustHandoff adds:
 
-It complements existing systems by adding:
+- signed, time-bounded task delegation
+- replay protection via nonce tracking
+- runtime revalidation of capabilities
+- strict TTL enforcement (risk-based)
+- human execution gates
+- AI provenance tagging
+- overlap window safety for token rotation
+- event-based observability
+- post-execution forensic analysis (Sentinel)
 
-- verifiable delegation  
-- bounded authority  
-- provenance-aware execution  
-- auditability  
+---
 
-Recommended stack:
+## Core guarantees
+
+Every execution becomes:
+
+- tamper-evident
+- replay-resistant
+- runtime-verifiable
+
+---
+
+## Example
+
+1. PLANNER NODE -> verification: True  
+2. RESEARCHER NODE -> verification: True  
+3. TAMPERED HANDOFF -> verification: False  
+4. REPLAYED HANDOFF -> verification: False  
+
+---
+
+## What’s new in v0.3.3
+
+This release closes the execution integrity loop.
+
+### Enforcement
+
+- risk-based TTL (write=120s, read=900s)
+- TTL bound to packet
+- mismatch rejected at validation
+- optional strict mode for production
+
+### Runtime integrity
+
+- revalidation watcher detects drift mid-execution
+- revoked or expired capabilities are rejected
+- replay protection enforced
+
+### Execution control
+
+- human review gates (blocking)
+- capability constraints enforced at protocol level
+
+### Safety
+
+- overlap window (30s) for token rotation
+- prevents race conditions
+
+### Observability
+
+- structured event system
+- JSONL export for audit trails
+- pluggable event sinks
+
+### Detection
+
+- Sentinel detects:
+  - replay attempts
+  - stale capabilities
+  - overlap usage
+  - AI-generated payloads
+
+---
+
+## Architecture
+
+TrustHandoff plugs into existing stacks:
 
 - MCP = tools  
 - A2A = communication  
 - LangGraph / CrewAI / AutoGen = orchestration  
-- TrustHandoff = delegation + accountability  
-
-## Quickstart
-
-Minimal flow:
-
-- create agents  
-- create packet  
-- sign packet  
-- verify packet  
-- process handoff  
-
-Result:
-
-ACCEPT → execution allowed  
-REJECT → execution blocked  
-
-## Contributing
-
-We actively welcome contributors.
-
-High leverage areas:
-
-- adapters  
-- attack simulations  
-- security improvements  
-- execution attestation  
-- real-world integrations  
-
-Setup:
-
-git clone <repo>  
-cd trusthandoff  
-pip install -e .  
-pytest  
-
-Open a PR.
-
-## Roadmap
-
-v0.2
-
-- protocol stabilization  
-- delegation chain verification  
-- middleware pipeline  
-- adapters  
-
-## ✨ v0.3.2 — Runtime Revalidation & Execution Integrity
-
-This release introduces runtime capability revalidation and strengthens execution guarantees for agent systems.
-
-### 🔐 New: Runtime Revalidation
-
-Long-running tasks can now detect capability drift during execution:
-
-```python
-decision, watcher = middleware.handle_with_revalidation(
-    envelope,
-    revalidate_fn=my_check_fn,
-)
-```
-
-- Detects revoked or expired permissions mid-task  
-- Raises:
-  - StaleCapabilityError
-  - RevocationConsistencyError  
-- Runs in the background with jitter + safe minimum interval  
-- Fully backward compatible  
+- TrustHandoff = delegation + execution integrity  
 
 ---
 
-### 🧠 What This Solves
+## Current scope
 
-Modern agent systems trust intermediate outputs by convention.
-
-TrustHandoff makes execution:
-- tamper-evident  
-- replay-resistant  
-- runtime-verifiable  
-
----
-
-### ⚠️ Current Scope
-
-This version provides:
-- Local replay protection (per instance)  
-- Deterministic execution attestation  
-- Runtime revalidation hooks  
-
-It does NOT yet include:
-- Distributed replay protection  
-- Shared revocation registries  
-- Cross-node capability invalidation  
+- local replay protection (Redis-ready)
+- runtime revalidation
+- TTL enforcement
+- execution gating
+- overlap safety
+- event-driven observability
+- forensic detection (Sentinel)
 
 ---
 
-### 🚧 Where This Is Going
+## Direction
 
-TrustHandoff is evolving toward a distributed execution integrity layer for agent systems.
+TrustHandoff is evolving into a distributed execution integrity layer for agent systems.
 
-Planned directions:
+Planned:
 
-- Distributed nonce tracking (Redis / TTL-based)  
-- Shared revocation registries  
-- Cross-agent capability invalidation  
-- Network-aware trust boundaries  
+- distributed nonce tracking
+- shared revocation registries
+- cross-agent invalidation
+- network-aware trust boundaries
 
-The goal is simple:
+---
 
-Make agent execution provable across systems, not just within a single process.
+## Philosophy
 
+If you cannot prove execution, you cannot trust the system.
+
+---
 
 ## License
 
 MIT
-
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PyPI](https://img.shields.io/pypi/v/trusthandoff)](https://pypi.org/project/trusthandoff/)
