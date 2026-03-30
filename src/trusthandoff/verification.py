@@ -1,4 +1,5 @@
 import base64
+import json
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -15,7 +16,12 @@ def verify_packet(packet: SignedTaskPacket) -> bool:
     if not isinstance(public_key, Ed25519PublicKey):
         raise TypeError("Expected an Ed25519 public key")
 
-    payload = packet.model_dump_json(exclude={"signature"}).encode("utf-8")
+    payload = json.dumps(
+        packet.model_dump(exclude={"signature"}, mode="json"),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
     signature = base64.b64decode(packet.signature.encode("utf-8"))
 
     try:
