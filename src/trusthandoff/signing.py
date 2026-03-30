@@ -1,4 +1,5 @@
 import base64
+import json
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -16,7 +17,12 @@ def sign_packet(packet: SignedTaskPacket, identity: AgentIdentity) -> SignedTask
     if not isinstance(private_key, Ed25519PrivateKey):
         raise TypeError("Expected an Ed25519 private key")
 
-    payload = packet.model_dump_json(exclude={"signature"}).encode("utf-8")
+    payload = json.dumps(
+        packet.model_dump(exclude={"signature"}, mode="json"),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
     signature = private_key.sign(payload)
     signature_b64 = base64.b64encode(signature).decode("utf-8")
 
