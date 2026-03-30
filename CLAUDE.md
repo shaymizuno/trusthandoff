@@ -96,7 +96,7 @@ src/trusthandoff/
 |File                        |Issue                                                      |Risk  |
 |----------------------------|-----------------------------------------------------------|------|
 |signing.py + verification.py|model_dump_json non-deterministic on dicts                 |HIGH  |
-|sentinel.py                 |No lock on self.events during detect_violations() iteration|MEDIUM|
+|sentinel.py                 |~~No lock on self.events during detect_violations() iteration~~ Fixed: threading.Lock added|LOW   |
 |packet.py                   |public_key self-reported, no registry binding enforced     |HIGH  |
 |middleware/executor.py      |Verify execution gating is atomic — check for TOCTOU       |MEDIUM|
 
