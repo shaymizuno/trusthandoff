@@ -1,11 +1,15 @@
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 
+from .agent_registry import AgentRegistry
 from .packet import SignedTaskPacket
 from .decorators import DEFAULT_POLICY
+from .errors import PublicKeyMismatchError
 from .events import emit_event
 from .overlap import is_overlap_valid
+from .verification import _check_registry_binding
 
 MAX_ISSUANCE_SKEW_SECONDS = 300
 MAX_EXPIRY_GRACE_SECONDS = 60
@@ -100,8 +104,16 @@ def validate_packet(
     packet: SignedTaskPacket,
     issuance_skew: timedelta = ISSUANCE_SKEW_TOLERANCE,
     expiry_grace: timedelta = EXPIRY_GRACE,
+    registry: Optional[AgentRegistry] = None,
 ) -> PacketValidationResult:
     now = datetime.now(timezone.utc)
+
+    if registry is not None:
+        try:
+            _check_registry_binding(packet, registry)
+        except PublicKeyMismatchError:
+            _emit_rejected(packet, "public_key_mismatch")
+            return PacketValidationResult(False, "public_key_mismatch")
 
     if packet.issued_at > packet.expires_at:
         _emit_rejected(packet, "malformed_time_window")

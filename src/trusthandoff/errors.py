@@ -35,6 +35,22 @@ class InvalidSignatureError(VerificationError):
     pass
 
 
+class PublicKeyMismatchError(VerificationError):
+    """
+    Raised when packet.public_key does not match the registry's canonical
+    key for packet.from_agent.
+
+    This covers two cases:
+    - agent is not registered at all (detail="not_registered")
+    - agent is registered but the key in the packet differs (detail="key_mismatch")
+    """
+
+    def __init__(self, agent_id: str, detail: str = "key_mismatch"):
+        self.agent_id = agent_id
+        self.detail = detail
+        super().__init__(f"Public key mismatch for agent {agent_id!r}: {detail}")
+
+
 # ---------------------------------------------------------------------
 # Payload / Protocol Errors
 # ---------------------------------------------------------------------
