@@ -66,7 +66,8 @@ def test_full_protocol_pipeline(tmp_path):
     violations = sentinel.detect_violations()
 
     # Should detect AI + overlap usage
-    types = [v["type"] for v in violations]
+    # detect_violations() returns List[ViolationRecord] as of v0.4.0
+    types = [v.violation_type for v in violations]
 
     assert "ai_generated_payload" in types
     assert "overlap_window_used" in types

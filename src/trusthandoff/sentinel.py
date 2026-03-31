@@ -1,82 +1,42 @@
-import threading
-from typing import List, Dict, Any, Optional
+"""
+TrustHandoff Sentinel — thin shim over sentinel-core.
+
+Public API is unchanged from v0.3.x except detect_violations() now returns
+List[ViolationRecord] instead of List[dict]. This is a 0.4.0 breaking change.
+
+Callers that need the old dict shape:
+    [v.model_dump() for v in sentinel.detect_violations()]
+"""
+
+from sentinel_core import Sentinel as _CoreSentinel
+from sentinel_core.event import ViolationRecord  # re-export for callers
 
 from .events import get_events, load_events_from_jsonl
+from .sentinel_adapter import TrustHandoffSentinelAdapter
+
+_ADAPTER = TrustHandoffSentinelAdapter()
 
 
-class Sentinel:
+class Sentinel(_CoreSentinel):
     """
-    Minimal event-driven auditor.
-    Can ingest either in-memory protocol events or external JSONL event logs.
-    """
+    TrustHandoff-flavoured Sentinel.
 
-    def __init__(self):
-        self._lock = threading.Lock()
-        self.events: List[Dict[str, Any]] = []
+    Adds ingest() and ingest_jsonl() so callers don't have to handle the
+    raw-dict → SentinelEvent translation themselves.
+
+    All violation detection and reporting is delegated to sentinel-core.
+    """
 
     def ingest(self) -> None:
-        events = get_events()
-        with self._lock:
-            self.events = events
+        """Ingest events from the trusthandoff in-memory event buffer."""
+        self._ingest_raw(get_events())
 
     def ingest_jsonl(self, path: str) -> None:
-        events = load_events_from_jsonl(path)
-        with self._lock:
-            self.events = events
+        """Ingest events from a JSONL file written by dump_events_to_jsonl()."""
+        self._ingest_raw(load_events_from_jsonl(path))
 
-    def detect_violations(self) -> List[Dict[str, Any]]:
-        violations = []
+    def _ingest_raw(self, raw_events) -> None:
+        super().ingest(_ADAPTER.to_sentinel_event(e) for e in raw_events)
 
-        with self._lock:
-            events = list(self.events)
 
-        for e in events:
-            if e["event_type"] == "packet_rejected":
-                violations.append(
-                    {
-                        "type": "rejected_packet",
-                        "packet_id": e.get("packet_id"),
-                        "reason": e.get("reason"),
-                    }
-                )
-
-            if e["event_type"] == "capability_stale":
-                violations.append(
-                    {
-                        "type": "stale_capability",
-                        "capability_id": e.get("capability_id"),
-                        "reason": e.get("reason"),
-                    }
-                )
-
-            if e["event_type"] == "token_overlap_used":
-                violations.append(
-                    {
-                        "type": "overlap_window_used",
-                        "packet_id": e.get("packet_id"),
-                        "reason": e.get("reason"),
-                    }
-                )
-
-            if e["event_type"] == "ai_generated_payload":
-                violations.append(
-                    {
-                        "type": "ai_generated_payload",
-                        "packet_id": e.get("packet_id"),
-                        "source": e.get("source"),
-                        "model": e.get("model"),
-                    }
-                )
-
-        return violations
-
-    def report(self) -> None:
-        violations = self.detect_violations()
-
-        if not violations:
-            print("No violations detected")
-            return
-
-        print("=== SENTINEL REPORT ===")
-        for v in violations:
-            print(v)
+__all__ = ["Sentinel", "ViolationRecord"]
