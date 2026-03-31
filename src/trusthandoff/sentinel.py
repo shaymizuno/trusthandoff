@@ -8,8 +8,6 @@ Callers that need the old dict shape:
     [v.model_dump() for v in sentinel.detect_violations()]
 """
 
-from typing import List
-
 from sentinel_core import Sentinel as _CoreSentinel
 from sentinel_core.event import ViolationRecord  # re-export for callers
 
