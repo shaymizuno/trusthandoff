@@ -21,7 +21,7 @@ packaging==26.0
 pluggy==1.6.0
 pycparser==3.0
 pydantic==2.12.5
-pydantic_core==2.42.0
+pydantic_core==2.45.0
 Pygments==2.19.2
 pyproject_hooks==1.2.0
 pytest==9.0.2
